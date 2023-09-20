@@ -1,7 +1,15 @@
 import json
+import time
 
 import requests
 from bs4 import BeautifulSoup
+
+import undetected_chromedriver as uc
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from undetected_chromedriver import ChromeOptions
+
+from parse_page import parse_links
 
 cookies = {
     'TAUnique': '%1%enc%3A5EPBin1ZXG7VXrMro2Rf4x84Gzgpnir%2BBME5XeeEOhwYvJ58lDKZ6g%3D%3D',
@@ -83,15 +91,66 @@ def parse_url():
                 f.write(f'{url}\n')
 
 
-def parse_page():
-    with open('urls.txt', 'r') as f:
-        urls = f.read().split()
-
-    for url in urls:
-        response = requests.get(url)
+def get_data():
+    with open('urls.txt') as file:
+        urls_list = [url.strip() for url in file.readlines()]
+    items_list = []
+    info_list = []
+    count = 0
+    for url in urls_list:
+        response = requests.get(url, params=params, cookies=cookies,
+                                headers=headers)
         soup = BeautifulSoup(response.content, 'lxml')
-        name = soup.find('h1', class_='HjBfq').text
-        print(name)
+        try:
+            # общая инфа
+            name = soup.find('h1', class_='HjBfq').text.strip()
+            items = soup.find_all('span', class_='DsyBj cNFrA')
+            rating = items[0].text
+            address = items[1].text
+            phone = items[2].text
+            # дитэйлсы
+            details = soup.find('div', class_='BMlpu')
+            details_item = details.find_all('div', class_='SrqKb')
+            price_range = details_item[0].text
+            cusines = details_item[1].text
+            meals = details_item[2].text
+            details_dict = {
+                'Price range': price_range,
+                'Cusines': cusines,
+                'Meals': meals
+            }
+            info_dict = {
+                'Name': name,
+                'rating': rating,
+                'Address': address,
+                'phone': phone,
+                'details': details_dict,
+                'links': parse_links()
+            }
+            info_list.append(info_dict)
+            items_dict = {
+                'INFO': info_list,
+            }
+            items_list.append(items_dict)
+            time.sleep(3)
+            with open('items_list.json', 'w', encoding='utf-8') as f:
+                json.dump(items_list, f, ensure_ascii=False, indent=4)
+        except Exception as ex:
+            print(ex)
+
+        count += 1
+        print(f'Обработалась {count}-я страница')
+
+
+
+
+def main():
+    get_data()
+
+
+if __name__ == '__main__':
+    main()
+
 
 
 if __name__ == '__main__':
