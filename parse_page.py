@@ -1,4 +1,5 @@
 import json
+import random
 import time
 
 import undetected_chromedriver as uc
@@ -45,11 +46,14 @@ def get_data():
             '''media'''
             photos_list = []
             photos = driver.find_elements(By.CSS_SELECTOR, "[class='basicImg']")
-            if photos:
-                for photo in photos:
-                    photos_list.append(photo.get_attribute('src'))
-            else:
-                return None
+            try:
+                if photos:
+                    for photo in photos:
+                        photos_list.append(photo.get_attribute('src'))
+                else:
+                    return None
+            except StaleElementReferenceException:
+                photos_list = []
 
             ''''media'''
 
@@ -118,12 +122,11 @@ def get_data():
                 'INFO': data_dict
             }
             data.append(info)
-
             count += 1
             print(f'Обработана {count}-я страница из {len(urls)}')
+            time.sleep(random.randrange(3, 5))
         with open('items.json', 'a', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
-        time.sleep(10)
     except Exception as ex:
         print(ex)
     finally:
